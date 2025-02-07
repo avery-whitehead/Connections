@@ -1,0 +1,34 @@
+﻿version: "3.9"
+
+volumes:
+  mssql-data:
+
+services:
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    restart: always
+    ports: 
+        - 1433:1433
+    environment:
+      - ACCEPT_EULA="Y"
+      - SA_PASSWORD=Root012345
+    volumes:
+      - mssql-data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P Root012345 -Q 'SELECT 1' || exit 1"]
+      interval: 10s
+      retries: 10
+      start_period: 10s
+      timeout: 3s
+  sqlserver.configurator:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    volumes:
+      - ./Migrations:/docker-entrypoint-initdb.d
+    depends_on:
+      mssql:
+        condition: service_healthy
+    command: >
+      bash -c '
+      /opt/mssql-tools18/bin/sqlcmd -C -S mssql -U sa -P Root012345 -d master -i docker-entrypoint-initdb.d/InitialCreate.sql;
+      echo "Database Setup Done";
+      '
