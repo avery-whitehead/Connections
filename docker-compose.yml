@@ -1,6 +1,4 @@
-﻿version: "3.9"
-
-volumes:
+﻿volumes:
   mssql-data:
 
 services:
@@ -20,7 +18,7 @@ services:
       retries: 10
       start_period: 10s
       timeout: 3s
-  sqlserver.configurator:
+  mssql.configurator:
     image: mcr.microsoft.com/mssql/server:2022-latest
     volumes:
       - ./Migrations:/docker-entrypoint-initdb.d
