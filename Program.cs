@@ -1,10 +1,16 @@
 using Connections.Components;
+using Connections.Data;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+builder.Services.AddDbContextFactory<ConnectionsContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DatabaseConnection")));
+
+var test = builder.Configuration.GetConnectionString("DatabaseConnection");
 
 var app = builder.Build();
 

@@ -51,11 +51,13 @@ namespace Connections.Models
         /// </summary>
         [MaxLength(55)]
         public required string Member4 { get; set; }
+    }
 
-        /// <summary>
-        /// Puzzle this group belongs to
-        /// </summary>
-        [DeleteBehavior(DeleteBehavior.Cascade)]
-        public virtual Puzzle? Puzzle { get; set; }
+    public enum Difficulty
+    {
+        YELLOW = 1,
+        GREEN = 2,
+        BLUE = 3,
+        PURPLE = 4
     }
 }

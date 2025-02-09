@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
 namespace Connections.Models
@@ -40,6 +41,14 @@ namespace Connections.Models
         /// <summary>
         /// Groups in the puzzle
         /// </summary>
-        public virtual Group[] Groups { get; set; } = [];
+        public virtual ICollection<Group> Groups { get; set; } = [];
+
+        /// <summary>
+        /// Helper property that stores the group tiles and their states in
+        /// a single array
+        /// </summary>
+        
+        [NotMapped]
+        public IEnumerable<Tile> Tiles { get; set; } = [];
     }
 }

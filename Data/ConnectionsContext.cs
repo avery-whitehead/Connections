@@ -3,13 +3,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Connections.Data
 {
-    public class ConnectionsContext : DbContext
+    public class ConnectionsContext(DbContextOptions<ConnectionsContext> options) : DbContext(options)
     {
         public DbSet<Puzzle> Puzzles { get; set; }
         public DbSet<Group> Groups { get; set; }
-
-        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder) =>
-            optionsBuilder.UseSqlServer("Server=localhost,1433;Database=tempdb;User ID=sa;Password=Root012345;Persist Security Info=False;TrustServerCertificate=true;");
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

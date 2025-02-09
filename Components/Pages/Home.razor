@@ -1,7 +1,11 @@
 ﻿@page "/"
+@rendermode InteractiveServer
+@inject NavigationManager Navigation
 
-<PageTitle>Home</PageTitle>
+<PageTitle>Only Connections</PageTitle>
 
-<h1>Hello, world!</h1>
+<h1>Only Connections</h1>
 
-Welcome to your new app.
+<button>Create a Game</button>
+<h2>or</h2>
+<button @onclick="@(() => Navigation.NavigateTo("/puzzle/test1234"))">Try the Sample Game</button>

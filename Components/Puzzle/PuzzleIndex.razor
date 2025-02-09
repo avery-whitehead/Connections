@@ -1,0 +1,88 @@
+﻿@page "/puzzle/{shareId}"
+@rendermode InteractiveServer
+@using Microsoft.EntityFrameworkCore
+@using Connections.Data
+@using Connections.Models;
+@using System.Linq;
+@implements IDisposable
+@inject IDbContextFactory<ConnectionsContext> DbFactory
+@inject PersistentComponentState ApplicationState
+
+<PageTitle>@puzzle?.Title</PageTitle>
+@foreach (Tile tile in (puzzle?.Tiles ?? []))
+{
+	<PuzzleTile Tile=@tile/>
+}
+
+@code {
+	[Parameter]
+	public string ShareId { get; set; } = "";
+
+	private Puzzle? puzzle;
+	private PersistingComponentStateSubscription persistingSubscription;
+
+	protected override async Task OnInitializedAsync()
+	{
+		persistingSubscription = ApplicationState.RegisterOnPersisting(PersistPuzzleData);
+
+		if (!ApplicationState.TryTakeFromJson<Puzzle>(nameof(puzzle), out Puzzle? restoredPuzzle))
+		{
+			puzzle = await GetPuzzleAsync(ShareId);
+		}
+		else
+		{
+			puzzle = restoredPuzzle;
+		}
+	}
+
+	/// <summary>
+	/// Query database for a puzzle and its groups
+	/// </summary>
+	/// <param name="shareId"></param>
+	/// <returns></returns>
+	private async Task<Puzzle?> GetPuzzleAsync(string shareId)
+	{
+		using ConnectionsContext context = DbFactory.CreateDbContext();
+		Puzzle? puzzle = await context.Puzzles
+			.Include(p => p.Groups)
+			.SingleOrDefaultAsync(p => p.ShareId == shareId);
+
+		if (puzzle is not null)
+		{
+			puzzle.Tiles = GetPuzzleTiles(puzzle);
+		}
+
+		return puzzle;
+	}
+
+	/// <summary>
+	/// Map a puzzle's groups into a set of labelled shuffled tiles
+	/// </summary>
+	/// <returns></returns>
+	private IEnumerable<Tile> GetPuzzleTiles(Puzzle puzzle)
+	{
+		return puzzle.Groups.SelectMany(group =>
+		{
+			return new Tile[]
+			{
+				new Tile { Label = group.Member1 },
+				new Tile { Label = group.Member2 },
+				new Tile { Label = group.Member3 },
+				new Tile { Label = group.Member4 }
+			};
+		})
+		.OrderBy(_ => Guid.NewGuid())
+		.ToList();
+	}
+
+	private Task PersistPuzzleData()
+	{
+		ApplicationState.PersistAsJson(nameof(puzzle), puzzle);
+		return Task.CompletedTask;
+	}
+
+	void IDisposable.Dispose()
+	{
+		persistingSubscription.Dispose();
+	}
+}
