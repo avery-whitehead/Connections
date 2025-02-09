@@ -1,0 +1,32 @@
+﻿.tile {
+    background-color: rgb(235 239 243);
+    height: 9em;
+    max-height: 90px;
+    border-radius: 10px;
+    width: 9em;
+    max-width: 150px;
+    text-transform: uppercase;
+    display: flex;
+    border: none;
+}
+
+.tile:hover:not(:disabled) {
+    background-color: rgb(214 216 219);
+    transition: 0.1s;
+}
+
+.tile.selected {
+    background-color: rgb(99 103 107);
+    color: white;
+}
+
+.tile.selected:hover {
+    background-color: rgb(99 103 107);
+    color: white;
+    transition: 0.1s;
+}
+
+p {
+    margin: auto;
+    font-weight: bold;
+}

@@ -10,9 +10,7 @@ builder.Services.AddRazorComponents()
 builder.Services.AddDbContextFactory<ConnectionsContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DatabaseConnection")));
 
-var test = builder.Configuration.GetConnectionString("DatabaseConnection");
-
-var app = builder.Build();
+WebApplication? app = builder.Build();
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())

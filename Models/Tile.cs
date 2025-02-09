@@ -10,6 +10,7 @@
     {
         DEFAULT = 0,
         SELECTED = 1,
-        CORRECT = 2
+        CORRECT = 2,
+        DISABLED = 3
     }
 }

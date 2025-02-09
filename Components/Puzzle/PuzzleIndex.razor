@@ -9,16 +9,19 @@
 @inject PersistentComponentState ApplicationState
 
 <PageTitle>@puzzle?.Title</PageTitle>
-@foreach (Tile tile in (puzzle?.Tiles ?? []))
-{
-	<PuzzleTile Tile=@tile/>
-}
+<section>
+	@foreach (Tile tile in (puzzle?.Tiles ?? []))
+	{
+		<PuzzleTile Tile=@tile OnTileClick=@UpdateSelectedTileState/>
+	}
+</section>
 
 @code {
 	[Parameter]
 	public string ShareId { get; set; } = "";
 
 	private Puzzle? puzzle;
+	private int selectedTileCount = 0;
 	private PersistingComponentStateSubscription persistingSubscription;
 
 	protected override async Task OnInitializedAsync()
@@ -75,6 +78,53 @@
 		.ToList();
 	}
 
+	/// <summary>
+	/// When a tile is clicked, toggle its state from selected or deselected
+	/// If it is the 4th tile to be clicked, disable all deselected tiles
+	/// If deselecting a 4th tile, re-enable all disabled tiles
+	/// </summary>
+	/// <param name="selectedTileLabel"></param>
+	private void UpdateSelectedTileState(string selectedTileLabel)
+	{
+		Tile selectedTile = puzzle!.Tiles.Single(t => t.Label == selectedTileLabel);
+
+		if (selectedTile.State == TileState.DEFAULT)
+		{
+			selectedTileCount++;
+			selectedTile.State = TileState.SELECTED;
+		}
+		else if (selectedTile.State == TileState.SELECTED)
+		{
+			selectedTileCount--;
+			selectedTile.State = TileState.DEFAULT;
+		}
+
+		if (selectedTileCount >= 4)
+		{
+			foreach (Tile tile in puzzle!.Tiles)
+			{
+				if (tile.State == TileState.DEFAULT)
+				{
+					tile.State = TileState.DISABLED;
+				}
+			}
+		}
+		else
+		{
+			foreach (Tile tile in puzzle!.Tiles)
+			{
+				if (tile.State == TileState.DISABLED)
+				{
+					tile.State = TileState.DEFAULT;
+				}
+			}
+		}
+	}
+
+	/// <summary>
+	/// Persist puzzle data so it isn't queried a second time after page preload
+	/// </summary>
+	/// <returns></returns>
 	private Task PersistPuzzleData()
 	{
 		ApplicationState.PersistAsJson(nameof(puzzle), puzzle);

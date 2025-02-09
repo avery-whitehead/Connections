@@ -1,8 +1,17 @@
 ﻿@using Connections.Models
 
-<div>@Tile.Label</div>
+<button
+	@onclick="@(async () => await OnTileClick.InvokeAsync(Tile.Label))"
+	class="tile @(Tile.State == TileState.SELECTED ? "selected" : "")"
+	disabled=@(Tile.State == TileState.DISABLED)
+>
+	<p>@Tile.Label</p>
+</button>
 
 @code {
 	[Parameter]
 	public Tile Tile { get; set; } = new();
+
+	[Parameter]
+	public EventCallback<string> OnTileClick { get; set; }
 }
