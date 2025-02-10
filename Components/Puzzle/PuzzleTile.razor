@@ -1,6 +1,7 @@
 ﻿@using Connections.Models
 
 <button
+	id=@Tile.Label
 	@onclick="@(async () => await OnTileClick.InvokeAsync(Tile.Label))"
 	class="tile @(Tile.SolvedColour) @(Tile.State == TileState.SELECTED ? "selected" : "")"
 	disabled=@(Tile.State == TileState.DISABLED || Tile.State == TileState.CORRECT)

@@ -1,0 +1,22 @@
+﻿@using Connections.Models
+<div id="solved-@(nthSolved)" class="group @(GetSolvedGroupColour(Group?.Difficulty))">
+	<p class="desc">@Group?.Description</p>
+	<p class="members">@(Group?.Member1), @(Group?.Member2), @(Group?.Member3), @(Group?.Member4)</p>
+</div>
+
+@code {
+	[Parameter]
+	public Group? Group { get; set; }
+
+	[Parameter]
+	public int nthSolved { get; set; }
+
+	private string GetSolvedGroupColour(Difficulty? difficulty) => difficulty switch
+	{
+		Difficulty.YELLOW => "yellow",
+		Difficulty.GREEN => "green",
+		Difficulty.BLUE => "blue",
+		Difficulty.PURPLE => "purple",
+		_ => ""
+	};
+}

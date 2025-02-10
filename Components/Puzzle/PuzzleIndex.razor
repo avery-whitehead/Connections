@@ -5,6 +5,7 @@
 @using Connections.Models;
 @using System.Linq;
 @using System.Globalization
+@using System.Collections.Immutable
 @implements IDisposable
 @inject IDbContextFactory<ConnectionsContext> DbFactory
 @inject PersistentComponentState ApplicationState
@@ -15,15 +16,23 @@
 	<h5>Created by @puzzle?.CreatedBy</h5>
 	<h5>@puzzle?.CreatedOn.ToString(DateTimeFormatInfo.CurrentInfo.LongDatePattern)</h5>
 </section>
-@if (tiles is not null)
-{
-	<div id="grid">
+
+<div id="grid">
+	@if (solvedGroups.Any())
+	{
+		@foreach ((int idx, Group group) in solvedGroups.Index())
+		{
+			<SolvedGroup Group=@group nthSolved=@idx/>
+		}
+	}
+	@if (tiles.Any())
+	{
 		@foreach (Tile tile in tiles)
 		{
 			<PuzzleTile Tile=@tile OnTileClick=@UpdateTilesState/>
 		}
-	</div>
-}
+	}
+</div>
 <div>
 	Mistakes: @mistakes
 </div>
@@ -34,9 +43,9 @@
 else
 {
 	<div>
-	<button disabled=@(puzzle is null || GetSelectedTileCount() > 0) @onclick=OnShuffleClick>Shuffle</button>
-	<button disabled=@(puzzle is null || GetSelectedTileCount() == 0) @onclick=OnDeselectClick>Deselect All</button>
-	<button disabled=@(puzzle is null || GetSelectedTileCount() < 4) @onclick=OnSubmitClick>Submit</button>
+		<button disabled=@(puzzle is null || GetSelectedTileCount() > 0) @onclick=OnShuffleClick>Shuffle</button>
+		<button disabled=@(puzzle is null || GetSelectedTileCount() == 0) @onclick=OnDeselectClick>Deselect All</button>
+		<button disabled=@(puzzle is null || GetSelectedTileCount() < 4) @onclick=OnSubmitClick>Submit</button>
 	</div>
 }
 
@@ -46,7 +55,8 @@ else
 	public string ShareId { get; set; } = "";
 
 	private Puzzle? puzzle;
-	private IEnumerable<Tile>? tiles;
+	private IImmutableList<Tile> tiles = [];
+	private IImmutableList<Group> solvedGroups = [];
 	private int mistakes = 0;
 	private bool gameWon = false;
 
@@ -73,13 +83,13 @@ else
 			puzzle = await GetPuzzleAsync(ShareId);
 		}
 
-		if (ApplicationState.TryTakeFromJson<IEnumerable<Tile>>(nameof(tiles), out IEnumerable<Tile>? restoredTiles))
+		if (ApplicationState.TryTakeFromJson<IImmutableList<Tile>>(nameof(tiles), out IImmutableList<Tile>? restoredTiles))
 		{
-			tiles = restoredTiles;
+			tiles = restoredTiles ?? [];
 		}
 		else
 		{
-			tiles = MapPuzzleTiles(puzzle);
+			tiles = MapPuzzleTiles(puzzle) ?? [];
 		}
 	}
 
@@ -100,7 +110,7 @@ else
 	/// Map a puzzle's groups into a set of labelled shuffled tiles
 	/// </summary>
 	/// <returns></returns>
-	private IEnumerable<Tile>? MapPuzzleTiles(Puzzle? puzzle)
+	private IImmutableList<Tile>? MapPuzzleTiles(Puzzle? puzzle)
 	{
 		return puzzle?.Groups.SelectMany(group =>
 		{
@@ -113,7 +123,7 @@ else
 			};
 		})
 		.OrderBy(_ => Guid.NewGuid())
-		.ToList();
+		.ToImmutableList();
 	}
 
 	/// <summary>
@@ -161,7 +171,7 @@ else
 			}
 
 			return t;
-		}).ToList();
+		}).ToImmutableList();
 	}
 
 	/// <summary>
@@ -181,7 +191,7 @@ else
 				};
 			}
 			return t;
-		}).ToList();
+		}).ToImmutableList();
 	}
 
 	// <summary>
@@ -191,7 +201,7 @@ else
 	{
 		tiles = tiles!
 			.OrderBy(_ => Guid.NewGuid())
-			.ToList();
+			.ToImmutableList();
 	}
 
 	/// <summary>
@@ -213,12 +223,12 @@ else
 					State = t.State == TileState.CORRECT ? TileState.CORRECT : TileState.DEFAULT,
 					SolvedColour = t.SolvedColour
 				};
-			}).ToList();
+			}).ToImmutableList();
 		}
 		else
 		{
+			solvedGroups = solvedGroups.Add(matchingGroup);
 			tiles = RebuildTiles(matchingGroup);
-			gameWon = tiles!.All(t => t.State == TileState.CORRECT);
 		}
 	}
 
@@ -243,87 +253,29 @@ else
 	/// </summary>
 	/// <param name="solvedGroup">The puzzle group that has been solved</param>
 	/// <returns></returns>
-	private IEnumerable<Tile> RebuildTiles(Group solvedGroup)
+	private IImmutableList<Tile> RebuildTiles(Group solvedGroup)
 	{
-		int solvedGroupsCount = tiles!.Count(t => t.State == TileState.CORRECT) / 4;
-
-		List<(int idx, Tile unsolved)> idxUnsolvedToSwap = tiles!
-			.Index()
-			.Skip(solvedGroupsCount * 4)
+		/*List<Tile> unsolvedTilesInFirstRow = tiles!
 			.Take(4)
-			.Where(t => t.Item.State == TileState.DISABLED)
+			.Where(t => t.State == TileState.DISABLED)
 			.ToList();
+		List<Tile> solvedTilesNotInFirstRow = tiles!
+			.Skip(4)
+			.Where(t => t.State == TileState.SELECTED)
+			.ToList();*/
 
-		List<(int idx, Tile solved)> idxSolvedToSwap = tiles!
-			.Index()
-			.Skip(solvedGroupsCount * 4 + 4)
-			.Where(t => t.Item.State == TileState.SELECTED)
-			.ToList();
-
-		int solvedSwaps = 0;
-		int unsolvedSwaps = 0;
-
-		return tiles!.Index().Select(t =>
-		{
-			// These tiles will already be solved, so leave them as-is
-			if (t.Index < solvedGroupsCount * 4)
-			{
-				return t.Item;
-			}
-
-			// If tile is in the row we're going to move a solved tile to and is part of the
-			// submission, solve it and leave it there
-			if (t.Item.State == TileState.SELECTED && t.Index >= solvedGroupsCount * 4 && t.Index < solvedGroupsCount * 4 + 4)
+		return tiles!
+			.Where(t => t.State != TileState.SELECTED)
+			.Select(t =>
 			{
 				return new Tile()
-					{
-						Label = t.Item.Label,
-						State = TileState.CORRECT,
-						SolvedColour = GetSolvedGroupColour(solvedGroup.Difficulty)
-					};
-			}
-
-			// If an unsolved tile is in the row we're going to move a solved tile to,
-			// we need to swap them one at a time
-			if (idxUnsolvedToSwap.Select(i => i.idx).Contains(t.Index))
-			{
-				Tile solvedTile = new()
-					{
-						Label = idxSolvedToSwap.ElementAt(solvedSwaps).solved.Label,
-						State = TileState.CORRECT,
-						SolvedColour = GetSolvedGroupColour(solvedGroup.Difficulty)
-					};
-				solvedSwaps++;
-				return solvedTile;
-			}
-
-			if (idxSolvedToSwap.Select(i => i.idx).Contains(t.Index))
-			{
-				Tile unsolvedTile = new()
-					{
-						Label = idxUnsolvedToSwap.ElementAt(unsolvedSwaps).unsolved.Label,
-						State = TileState.DEFAULT
-					};
-				unsolvedSwaps++;
-				return unsolvedTile;
-			}
-
-			return new Tile
 				{
-					Label = t.Item.Label,
+					Label = t.Label,
 					State = TileState.DEFAULT
 				};
-		}).ToList();
+			})
+			.ToImmutableList();
 	}
-
-	private string GetSolvedGroupColour(Difficulty difficulty) => difficulty switch
-	{
-		Difficulty.YELLOW => "yellow",
-		Difficulty.GREEN => "green",
-		Difficulty.BLUE => "blue",
-		Difficulty.PURPLE => "purple",
-		_ => ""
-	};
 
 	private int GetSelectedTileCount() => tiles?.Count(t => t.State == TileState.SELECTED) ?? 0;
 
