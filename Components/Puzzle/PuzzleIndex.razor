@@ -9,12 +9,20 @@
 @inject PersistentComponentState ApplicationState
 
 <PageTitle>@puzzle?.Title</PageTitle>
-<section>
+<div id="grid">
 	@foreach (Tile tile in (puzzle?.Tiles ?? []))
 	{
 		<PuzzleTile Tile=@tile OnTileClick=@UpdateSelectedTileState/>
 	}
-</section>
+</div>
+<div>
+	Mistakes: @mistakes
+</div>
+<div>
+	<button disabled=@(puzzle is null || selectedTileCount > 0) @onclick=OnShuffleClick>Shuffle</button>
+	<button disabled=@(puzzle is null || selectedTileCount == 0) @onclick =OnDeselectClick>Deselect All</button>
+	<button disabled=@(puzzle is null || selectedTileCount < 4) @onclick =OnSubmitClick>Submit</button>
+</div>
 
 @code {
 	[Parameter]
@@ -22,6 +30,8 @@
 
 	private Puzzle? puzzle;
 	private int selectedTileCount = 0;
+	private int mistakes = 0;
+	private int groupsSolved = 0;
 	private PersistingComponentStateSubscription persistingSubscription;
 
 	protected override async Task OnInitializedAsync()
@@ -120,6 +130,161 @@
 			}
 		}
 	}
+
+	/// <summary>
+	/// Deselect all selected tiles
+	/// </summary>
+	private void OnDeselectClick()
+	{
+		selectedTileCount = 0;
+		foreach (Tile tile in puzzle!.Tiles)
+		{
+			if (tile.State == TileState.SELECTED || tile.State == TileState.DISABLED)
+			{
+				tile.State = TileState.DEFAULT;
+			}	
+		}
+	}
+	// <summary>
+	/// Shuffle unsolved tiles
+	/// </summary>
+	private void OnShuffleClick()
+	{
+		puzzle!.Tiles = puzzle!.Tiles
+			.Where(t => t.State != TileState.CORRECT)
+			.OrderBy(_ => Guid.NewGuid());
+	}
+
+	/// <summary>
+	/// Submit 4 selected tiles as a potential group
+	/// Sets tile state to correct and colour to group difficulty if a match is found
+	/// Increments mistake counter and clears grid if no match is found
+	/// </summary>
+	private void OnSubmitClick()
+	{
+		IEnumerable<Tile> selectedTiles = puzzle!.Tiles.Where(t => t.State == TileState.SELECTED);
+		Group? matchingGroup = FindMatchingGroup(selectedTiles);
+
+		if (matchingGroup is null)
+		{
+			mistakes++;
+		}
+		else
+		{
+			puzzle = CreateSolvedGroupState(selectedTiles, matchingGroup.Difficulty);
+			foreach (Tile selectedTile in selectedTiles)
+			{
+				selectedTile.State = TileState.CORRECT;
+			}
+		}
+
+		// Deselect all elements
+		OnDeselectClick();
+	}
+
+	/// <summary>
+	/// Validates a submitted group against the list of groups in the puzzle
+	/// </summary>
+	/// <returns>The group that matched the submitted tiles, or null if no group found</returns>
+	private Group? FindMatchingGroup(IEnumerable<Tile> submission)
+	{
+		IEnumerable<string> submittedLabels = submission.Select(l => l.Label).Order();
+		return puzzle!.Groups.SingleOrDefault(group =>
+		{
+			IEnumerable<string> groupLabels = [group.Member1, group.Member2, group.Member3, group.Member4];
+			return submittedLabels.SequenceEqual(groupLabels.Order());
+		});
+	}
+
+	private Puzzle CreateSolvedGroupState(IEnumerable<Tile> solvedTiles, Difficulty difficulty)
+	{
+		IEnumerable<string> solvedTileLabels = solvedTiles.Select(t => t.Label);
+		IEnumerable<int> solvedGroupIndexes = puzzle!.Tiles
+			.Index()
+			.Where(t => solvedTileLabels.Contains(t.Item.Label))
+			.Select(t => t.Index);
+		IEnumerable<(int idx, Tile tile)> tilesToSwap = puzzle!.Tiles
+			.Index()
+			.Skip(groupsSolved * 4)
+			.Take(4)
+			.Where(t => !solvedTileLabels.Contains(t.Item.Label));
+
+
+		int swapIdx = 0;
+		IEnumerable<Tile> updatedTileState = Enumerable.Range(0, 15).Select(idx =>
+		{
+			if (idx <= groupsSolved * 1)
+			{
+				return puzzle!.Tiles.ElementAt(idx);
+			}
+
+			if (solvedGroupIndexes.Contains(idx))
+			{
+				if (idx <= groupsSolved * 4 + 4)
+				{
+					return new Tile
+					{
+						Label = puzzle!.Tiles.ElementAt(idx).Label,
+						State = TileState.CORRECT,
+						SolvedColour = GetSolvedGroupColour(difficulty)
+					};
+				}
+
+
+			}
+		});
+		return puzzle;
+		/*List<Tile> swappedTiles = [];
+		IEnumerable<string> solvedTileLabels = solvedTiles.Select(t => t.Label);
+		for (int i = 1 * groupsSolved; i <= 1 * groupsSolved + 4; i++)
+			{
+			if (solvedTileLabels.Contains(puzzle!.Tiles.ElementAt(i).Label))
+					{
+					swappedTiles.Add(new Tile
+					{
+					Label = puzzle!.Tiles.ElementAt(i).Label,
+						State = TileState.CORRECT,
+						SolvedColour = difficulty switch
+						{
+						Difficulty.YELLOW => "yellow",
+						Difficulty.GREEN => "green",
+						Difficulty.BLUE => "blue",
+						Difficulty.PURPLE => "purple",
+		_ => ""
+		}
+		});
+		}
+		}*/
+		/*IEnumerable<Tile> rowToMoveSolvedTo = puzzle!.Tiles
+				.Skip(1 * groupsSolved)
+			.Take(4);
+
+			IEnumerable<int> indicesSolvedTilesOutsideRow = puzzle!.Tiles
+				.Index()
+				.Skip(1 * groupsSolved + 4)
+				.Where(t => solvedTiles.Select(s => s.Label).Contains(t.Item.Label))
+				.Select(t => t.Index);
+
+			IEnumerable<int> indicesOtherGroupTilesInsideRow = rowToMoveSolvedTo
+				.Index()
+				.Where(t => !(solvedTiles.Select(s => s.Label)).Contains(t.Item.Label))
+				.Select(t => t.Index);
+
+			IEnumerable<Tile> solvedRow = rowToMoveSolvedTo.Select(r =>
+			{
+
+			});
+			return puzzle;*/
+	}
+
+	private string GetSolvedGroupColour(Difficulty difficulty) => difficulty switch
+	{
+		Difficulty.YELLOW => "yellow",
+		Difficulty.GREEN => "green",
+		Difficulty.BLUE => "blue",
+		Difficulty.PURPLE => "purple",
+		_ => ""
+	};
 
 	/// <summary>
 	/// Persist puzzle data so it isn't queried a second time after page preload

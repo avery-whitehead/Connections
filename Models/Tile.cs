@@ -4,6 +4,7 @@
     {
         public string Label { get; set; } = "";
         public TileState State { get; set; } = TileState.DEFAULT;
+        public string SolvedColour { get; set; } = "";
     }
 
     public enum TileState

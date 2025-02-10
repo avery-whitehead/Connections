@@ -2,8 +2,8 @@
 
 <button
 	@onclick="@(async () => await OnTileClick.InvokeAsync(Tile.Label))"
-	class="tile @(Tile.State == TileState.SELECTED ? "selected" : "")"
-	disabled=@(Tile.State == TileState.DISABLED)
+	class="tile @(Tile.SolvedColour) @(Tile.State == TileState.SELECTED ? "selected" : "")"
+	disabled=@(Tile.State == TileState.DISABLED || Tile.State == TileState.CORRECT)
 >
 	<p>@Tile.Label</p>
 </button>

@@ -26,6 +26,27 @@
     transition: 0.1s;
 }
 
+.tile.yellow {
+    background-color: rgb(249, 223, 109);
+}
+
+
+.tile.green {
+    background-color: rgb(160, 195, 90);
+}
+
+.tile.blue {
+    background-color: rgb(176, 196, 239);
+}
+
+.tile.purple {
+    background-color: rgb(186 129 197);
+}
+
+
+
+
+
 p {
     margin: auto;
     font-weight: bold;
