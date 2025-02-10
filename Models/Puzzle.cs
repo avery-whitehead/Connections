@@ -42,13 +42,5 @@ namespace Connections.Models
         /// Groups in the puzzle
         /// </summary>
         public virtual ICollection<Group> Groups { get; set; } = [];
-
-        /// <summary>
-        /// Helper property that stores the group tiles and their states in
-        /// a single array
-        /// </summary>
-        
-        [NotMapped]
-        public IEnumerable<Tile> Tiles { get; set; } = [];
     }
 }
