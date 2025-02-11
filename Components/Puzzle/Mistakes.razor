@@ -1,0 +1,10 @@
+﻿Mistakes Remaining:
+<span class=@(LivesLost > 3 ? "hide" : "")>❤️</span>
+<span class=@(LivesLost > 2 ? "hide" : "")>❤️</span>
+<span class=@(LivesLost > 1 ? "hide" : "")>❤️</span>
+<span class=@(LivesLost > 0 ? "hide" : "")>❤️</span>
+
+@code {
+	[Parameter]
+	public int LivesLost { get; set; }
+}

@@ -10,45 +10,57 @@
 @inject IDbContextFactory<ConnectionsContext> DbFactory
 @inject PersistentComponentState ApplicationState
 
-<PageTitle>@puzzle?.Title</PageTitle>
-<section>
-	<h2>@puzzle?.Title</h2>
-	<h5>Created by @puzzle?.CreatedBy</h5>
-	<h5>@puzzle?.CreatedOn.ToString(DateTimeFormatInfo.CurrentInfo.LongDatePattern)</h5>
-</section>
+<div id="puzzle">
+	<section id="puzzle-info">
+		<h2>@puzzle?.Title</h2>
+		<h5>Created by @puzzle?.CreatedBy</h5>
+		<h5>@puzzle?.CreatedOn.ToString(DateTimeFormatInfo.CurrentInfo.LongDatePattern)</h5>
+	</section>
 
-<div id="grid">
-	@if (solvedGroups.Any())
-	{
-		@foreach ((int idx, Group group) in solvedGroups.Index())
+	<div id="grid">
+		@if (solvedGroups.Any())
 		{
-			<SolvedGroup Group=@group nthSolved=@idx/>
+			@foreach ((int idx, Group group) in solvedGroups.Index())
+			{
+				<SolvedGroup Group=@group nthSolved=@idx />
+			}
 		}
-	}
-	@if (tiles.Any())
-	{
-		@foreach (Tile tile in tiles)
+		@if (tiles.Any())
 		{
-			<PuzzleTile Tile=@tile OnTileClick=@UpdateTilesState/>
+			@foreach (Tile tile in tiles)
+			{
+				<PuzzleTile Tile=@tile OnTileClick=@UpdateTilesState />
+			}
 		}
-	}
-</div>
-<div>
-	Mistakes: @mistakes
-</div>
-@if (gameWon)
-{
-	<div>You win!</div>
-}
-else
-{
-	<div>
-		<button disabled=@(puzzle is null || GetSelectedTileCount() > 0) @onclick=OnShuffleClick>Shuffle</button>
-		<button disabled=@(puzzle is null || GetSelectedTileCount() == 0) @onclick=OnDeselectClick>Deselect All</button>
-		<button disabled=@(puzzle is null || GetSelectedTileCount() < 4) @onclick=OnSubmitClick>Submit</button>
 	</div>
-}
-
+	<div id="mistakes">
+		<Mistakes LivesLost=@mistakes/>
+	</div>
+	<div id="controls">
+		<button
+			type="button"
+			disabled=@(puzzle is null)
+			@onclick=OnShuffleClick
+		>
+			Shuffle
+		</button>
+		<button 
+			type="button"
+			disabled=@(puzzle is null || GetSelectedTileCount() == 0)
+			@onclick=OnDeselectClick	
+		>
+			Deselect All
+		</button>
+		<button
+			type="button"
+			id="submit"
+			disabled=@(puzzle is null || GetSelectedTileCount() < 4)
+			@onclick=OnSubmitClick
+		>
+			Submit
+		</button>
+	</div>
+</div>
 
 @code {
 	[Parameter]
@@ -58,7 +70,6 @@ else
 	private IImmutableList<Tile> tiles = [];
 	private IImmutableList<Group> solvedGroups = [];
 	private int mistakes = 0;
-	private bool gameWon = false;
 
 	private PersistingComponentStateSubscription puzzleSubscription;
 	private PersistingComponentStateSubscription tilesSubscription;

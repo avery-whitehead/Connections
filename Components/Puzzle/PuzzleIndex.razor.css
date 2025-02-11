@@ -1,8 +1,47 @@
-﻿#grid {
+﻿#puzzle {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+#puzzle-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 1.5em;
+}
+
+#grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     grid-template-rows: repeat(4, 1fr);
     grid-column-gap: 8px;
     grid-row-gap: 8px;
     max-width: 600px;
+    margin-bottom: 1.5em;
+}
+
+#mistakes {
+    margin-bottom: 1em;
+}
+
+#controls button {
+    background: none;
+    border-radius: 20px;
+    border: 2px solid rgb(99 103 107);
+    padding: 0.5em 1em;
+    margin-left: 0.5em;
+}
+
+#controls button:hover:not(:disabled) {
+    background-color: rgb(235 239 243);
+}
+
+#controls button#submit {
+    background-color: rgb(235 239 243);
+}
+
+#controls button#submit:not(:disabled) {
+    background-color: rgb(99 103 107);
+    color: white;
 }
