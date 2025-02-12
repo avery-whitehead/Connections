@@ -30,3 +30,18 @@ services:
       /opt/mssql-tools18/bin/sqlcmd -C -S mssql -U sa -P Root012345 -d master -i docker-entrypoint-initdb.d/InitialCreate.sql;
       echo "Database Setup Done";
       '
+  app:
+    build:
+       context: .
+       dockerfile: Dockerfile
+    environment:
+      - ConnectionStrings__DatabaseConnection=Server=mssql;Database=app;User ID=sa;Password=Root012345;Persist Security Info=False;TrustServerCertificate=true
+    ports:
+      - 8080:8080
+      - 8081:8081
+    depends_on:
+      mssql:
+        condition: service_healthy
+      mssql.configurator:
+        condition: service_started
+    
